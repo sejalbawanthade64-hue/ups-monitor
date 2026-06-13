@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0a0f1e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Transtech UPS">
+<link rel="manifest" href="manifest.json">
+<title>Transtech Systems — UPS Monitor</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{
+    --bg:#0a0f1e;
+    --surface:#111827;
+    --surface2:#1a2236;
+    --border:#1e2d47;
+    --accent:#3b82f6;
+    --accent2:#60a5fa;
+    --text:#f1f5f9;
+    --muted:#64748b;
+    --muted2:#94a3b8;
+    --green:#22c55e;
+    --red:#ef4444;
+    --yellow:#f59e0b;
+    --card-radius:14px;
+  }
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden}
+
+  /* ── Header ── */
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .header-left{display:flex;align-items:center;gap:10px}
+  .logo-box{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
+  .logo-box svg{width:20px;height:20px;fill:white}
+  .brand h1{font-size:15px;font-weight:600;color:var(--text)}
+  .brand p{font-size:11px;color:var(--muted);margin-top:1px}
+  .logout-btn{background:transparent;border:1px solid var(--border);color:var(--muted2);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer}
+  .logout-btn:active{opacity:0.7}
+
+  /* ── Login Screen ── */
+  #loginScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+  .login-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 28px;width:100%;max-width:380px}
+  .login-logo{text-align:center;margin-bottom:28px}
+  .login-logo .icon-ring{width:64px;height:64px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+  .login-logo .icon-ring svg{width:32px;height:32px;fill:var(--accent2)}
+  .login-logo h2{font-size:20px;font-weight:600;color:var(--text)}
+  .login-logo p{font-size:13px;color:var(--muted);margin-top:4px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:12px;color:var(--muted2);margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px}
+  .field input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-size:15px;outline:none;transition:border 0.2s}
+  .field input:focus{border-color:var(--accent)}
+  .field input::placeholder{color:var(--muted)}
+  .login-btn{width:100%;background:var(--accent);border:none;border-radius:10px;padding:13px;color:white;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px;transition:opacity 0.2s}
+  .login-btn:active{opacity:0.8}
+  .login-btn:disabled{opacity:0.5;cursor:not-allowed}
+  .error-msg{color:var(--red);font-size:13px;text-align:center;margin-top:12px;min-height:18px}
+  .divider{height:1px;background:var(--border);margin:20px 0}
+  .install-hint{text-align:center;font-size:12px;color:var(--muted);padding:0 8px}
+
+  /* ── Dashboard ── */
+  #dashboard{display:none;padding-bottom:32px}
+  .dash-header{padding:16px 20px 0}
+  .serial-row{display:flex;align-items:center;justify-content:space-between}
+  .serial-info h3{font-size:13px;color:var(--muted);font-weight:400}
+  .serial-info .serial{font-size:18px;font-weight:700;color:var(--accent2);letter-spacing:0.5px}
+  .status-dot{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted2)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+  .dot.online{background:var(--green);box-shadow:0 0 6px rgba(34,197,94,0.5)}
+  .dot.offline{background:var(--red)}
+  .last-update{font-size:11px;color:var(--muted);margin-top:6px;padding:0 20px}
+
+  /* offline banner */
+  .offline-banner{display:none;margin:12px 20px 0;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:10px 14px;font-size:13px;color:#fca5a5}
+
+  /* fault badges */
+  .fault-badges{display:flex;flex-wrap:wrap;gap:8px;padding:14px 20px 0}
+  .badge{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid}
+  .badge.ok{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);color:#86efac}
+  .badge.fault{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.4);color:#fca5a5}
+
+  /* param grid */
+  .section{padding:16px 20px 0}
+  .section-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px}
+  .param-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .param-grid.three{grid-template-columns:1fr 1fr 1fr}
+  .param-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--card-radius);padding:14px}
+  .param-card .p-label{font-size:11px;color:var(--muted);margin-bottom:6px}
+  .param-card .p-value{font-size:26px;font-weight:700;color:var(--text);line-height:1}
+  .param-card .p-unit{font-size:11px;color:var(--muted2);margin-top:4px}
+  .param-card.highlight{border-color:rgba(59,130,246,0.3);background:rgba(59,130,246,0.05)}
+  .param-card.highlight .p-value{color:var(--accent2)}
+
+  /* fault history */
+  .fault-history{margin:16px 20px 0;background:var(--surface);border:1px solid var(--border);border-radius:var(--card-radius);overflow:hidden}
+  .fault-history-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .fault-history-header span{font-size:13px;font-weight:600;color:var(--text)}
+  .fault-count{background:rgba(239,68,68,0.15);color:#fca5a5;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:600}
+  .fault-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
+  .fault-item:last-child{border-bottom:none}
+  .fault-name{font-size:13px;font-weight:600;color:#fca5a5}
+  .fault-time{font-size:11px;color:var(--muted)}
+  .no-faults{padding:24px;text-align:center;color:var(--muted);font-size:13px}
+  .no-faults svg{width:32px;height:32px;fill:var(--muted);opacity:0.4;display:block;margin:0 auto 8px}
+
+  /* loading skeleton */
+  .skeleton{background:linear-gradient(90deg,var(--surface2) 25%,var(--border) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;height:26px;width:60%}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  /* install banner */
+  .install-bar{display:none;margin:12px 20px 0;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--accent2);align-items:center;justify-content:space-between;gap:10px}
+  .install-bar button{background:var(--accent);border:none;color:white;padding:6px 14px;border-radius:7px;font-size:12px;cursor:pointer;white-space:nowrap}
+
+  @media(max-width:360px){
+    .param-card .p-value{font-size:22px}
+    .param-grid.three{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="header" id="appHeader" style="display:none">
+  <div class="header-left">
+    <div class="logo-box">
+      <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    </div>
+    <div class="brand">
+      <h1>Transtech Systems</h1>
+      <p>UPS Monitor</p>
+    </div>
+  </div>
+  <button class="logout-btn" onclick="logout()">Sign out</button>
+</div>
+
+<!-- ── Login ── -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="icon-ring">
+        <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </div>
+      <h2>Transtech Systems</h2>
+      <p>UPS Monitoring Portal</p>
+    </div>
+    <div class="field">
+      <label>Serial Number</label>
+      <input type="text" id="serialInput" placeholder="e.g. UPS001" autocomplete="off" autocapitalize="characters" spellcheck="false"/>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="passInput" placeholder="Enter password"/>
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="login()">View Dashboard</button>
+    <div class="error-msg" id="loginError"></div>
+    <div class="divider"></div>
+    <div class="install-hint">Add this page to your home screen for app-like access</div>
+  </div>
+</div>
+
+<!-- ── Dashboard ── -->
+<div id="dashboard">
+  <div class="dash-header">
+    <div class="serial-row">
+      <div class="serial-info">
+        <div class="p-label" style="font-size:11px;color:var(--muted);margin-bottom:2px">Unit</div>
+        <div class="serial" id="serialTag">--</div>
+      </div>
+      <div class="status-dot">
+        <div class="dot" id="statusDot"></div>
+        <span id="statusText">--</span>
+      </div>
+    </div>
+  </div>
+  <div class="last-update" id="lastUpdate"></div>
+
+  <div class="offline-banner" id="offlineBanner">
+    ⚠ UPS offline — no data received in last 30 seconds
+  </div>
+
+  <div class="install-bar" id="installBar">
+    <span>Install app for quick access</span>
+    <button id="installBtn">Install</button>
+  </div>
+
+  <div class="fault-badges" id="faultBadges">
+    <div class="badge ok" id="badgeBatLow">Battery OK</div>
+    <div class="badge ok" id="badgeOutLow">Output OK</div>
+    <div class="badge ok" id="badgeOutHigh">Voltage OK</div>
+    <div class="badge ok" id="badgeOverload">Load OK</div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Output</div>
+    <div class="param-grid three">
+      <div class="param-card highlight">
+        <div class="p-label">Voltage</div>
+        <div class="p-value" id="outV">--</div>
+        <div class="p-unit">Volts</div>
+      </div>
+      <div class="param-card highlight">
+        <div class="p-label">Current</div>
+        <div class="p-value" id="outC">--</div>
+        <div class="p-unit">Amps</div>
+      </div>
+      <div class="param-card highlight">
+        <div class="p-label">Frequency</div>
+        <div class="p-value" id="outF">--</div>
+        <div class="p-unit">Hz</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Battery</div>
+    <div class="param-grid">
+      <div class="param-card">
+        <div class="p-label">Voltage</div>
+        <div class="p-value" id="batV">--</div>
+        <div class="p-unit">Volts</div>
+      </div>
+      <div class="param-card">
+        <div class="p-label">Current</div>
+        <div class="p-value" id="batC">--</div>
+        <div class="p-unit">Amps</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Mains</div>
+    <div class="param-grid" style="grid-template-columns:1fr">
+      <div class="param-card">
+        <div class="p-label">Voltage</div>
+        <div class="p-value" id="mainV">--</div>
+        <div class="p-unit">Volts</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fault-history">
+    <div class="fault-history-header">
+      <span>Fault History</span>
+      <span class="fault-count" id="faultCount">0 faults</span>
+    </div>
+    <div id="faultList">
+      <div class="no-faults">
+        <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        No faults recorded
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://piejzeizbaouxavtkezw.supabase.co'';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpZWp6ZWl6YmFvdXhhdnRrZXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5Nzc4NTYsImV4cCI6MjA5NjU1Mzg1Nn0.c3m88KM7YrK7OVl0T_cdYTWfvRrJkuOxBIrplC4rZ0I';
+
+const UPS_PASSWORDS = {
+  'UPS001': 'pass001',
+  'UPS002': 'pass002',
+};
+
+let serial = '';
+let refreshTimer = null;
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const bar = document.getElementById('installBar');
+  if (bar && serial) bar.style.display = 'flex';
+});
+
+document.getElementById('installBtn')?.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('installBar').style.display = 'none';
+});
+
+document.getElementById('serialInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('passInput').focus();
+});
+document.getElementById('passInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') login();
+});
+
+async function login() {
+  const s   = document.getElementById('serialInput').value.trim().toUpperCase();
+  const p   = document.getElementById('passInput').value.trim();
+  const err = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+
+  err.textContent = '';
+  if (!s) { err.textContent = 'Please enter a serial number'; return; }
+  if (!p) { err.textContent = 'Please enter a password'; return; }
+
+  if (UPS_PASSWORDS[s] !== p) {
+    err.textContent = 'Invalid serial number or password';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Connecting...';
+
+  try {
+    const res  = await fetch(
+      `${SUPABASE_URL}/rest/v1/ups_live?serial_number=eq.${s}&select=serial_number`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    );
+    const data = await res.json();
+    if (!data || data.length === 0) {
+      err.textContent = 'Serial number not found in system';
+      btn.disabled = false; btn.textContent = 'View Dashboard';
+      return;
+    }
+  } catch(e) {
+    err.textContent = 'Connection failed. Check internet.';
+    btn.disabled = false; btn.textContent = 'View Dashboard';
+    return;
+  }
+
+  serial = s;
+  document.getElementById('loginScreen').style.display  = 'none';
+  document.getElementById('appHeader').style.display    = 'flex';
+  document.getElementById('dashboard').style.display    = 'block';
+  document.getElementById('serialTag').textContent      = serial;
+  btn.disabled = false; btn.textContent = 'View Dashboard';
+
+  if (deferredPrompt) document.getElementById('installBar').style.display = 'flex';
+
+  fetchData();
+  fetchFaults();
+  refreshTimer = setInterval(() => { fetchData(); fetchFaults(); }, 5000);
+}
+
+async function fetchData() {
+  try {
+    const res  = await fetch(
+      `${SUPABASE_URL}/rest/v1/ups_live?serial_number=eq.${serial}`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    );
+    const data = await res.json();
+    if (!data || data.length === 0) return;
+    const d = data[0];
+
+    set('outV',  d.output_voltage,  1);
+    set('outC',  d.output_current,  2);
+    set('outF',  d.output_freq,     1);
+    set('batV',  d.battery_voltage, 1);
+    set('batC',  d.battery_current, 2);
+    set('mainV', d.mains_voltage,   1);
+
+    setBadge('badgeBatLow',  d.bat_low,  'Battery Low',  'Battery OK');
+    setBadge('badgeOutLow',  d.out_low,  'Output Low',   'Output OK');
+    setBadge('badgeOutHigh', d.out_high, 'Output High',  'Voltage OK');
+    setBadge('badgeOverload',d.overload, 'Overload',     'Load OK');
+
+    const last   = new Date(d.updated_at);
+    const diffS  = (Date.now() - last.getTime()) / 1000;
+    const online = diffS <= 30;
+
+    document.getElementById('statusDot').className  = 'dot ' + (online ? 'online' : 'offline');
+    document.getElementById('statusText').textContent = online ? 'Online' : 'Offline';
+    document.getElementById('offlineBanner').style.display = online ? 'none' : 'block';
+    document.getElementById('lastUpdate').textContent = 'Last updated: ' + last.toLocaleTimeString();
+
+  } catch(e) { console.log('fetch error', e); }
+}
+
+async function fetchFaults() {
+  try {
+    const res  = await fetch(
+      `${SUPABASE_URL}/rest/v1/ups_faults?serial_number=eq.${serial}&order=occurred_at.desc&limit=30`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    );
+    const data = await res.json();
+    const list = document.getElementById('faultList');
+    const cnt  = document.getElementById('faultCount');
+
+    if (!data || data.length === 0) {
+      cnt.textContent  = '0 faults';
+      list.innerHTML   = '<div class="no-faults"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>No faults recorded</div>';
+      return;
+    }
+
+    cnt.textContent = data.length + (data.length === 1 ? ' fault' : ' faults');
+    list.innerHTML  = data.map(f => `
+      <div class="fault-item">
+        <div>
+          <div class="fault-name">${f.fault_type}</div>
+        </div>
+        <div class="fault-time">${new Date(f.occurred_at).toLocaleString()}</div>
+      </div>
+    `).join('');
+
+    if (Notification.permission === 'granted') {
+      const newest = data[0];
+      const key    = 'last_notif_' + serial;
+      const last   = localStorage.getItem(key);
+      if (newest && newest.occurred_at !== last) {
+        localStorage.setItem(key, newest.occurred_at);
+        new Notification('Transtech UPS Alert — ' + serial, {
+          body: newest.fault_type + ' detected',
+          icon: 'icon.png'
+        });
+      }
+    }
+  } catch(e) { console.log('faults error', e); }
+}
+
+function set(id, val, dec) {
+  document.getElementById(id).textContent = (val !== null && val !== undefined)
+    ? parseFloat(val).toFixed(dec)
+    : '--';
+}
+
+function setBadge(id, active, faultLabel, okLabel) {
+  const el     = document.getElementById(id);
+  el.className = 'badge ' + (active ? 'fault' : 'ok');
+  el.textContent = active ? faultLabel : okLabel;
+}
+
+function logout() {
+  clearInterval(refreshTimer);
+  serial = '';
+  document.getElementById('dashboard').style.display   = 'none';
+  document.getElementById('appHeader').style.display   = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('serialInput').value = '';
+  document.getElementById('passInput').value   = '';
+  document.getElementById('loginError').textContent = '';
+}
+
+if ('Notification' in window && Notification.permission === 'default') {
+  Notification.requestPermission();
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
